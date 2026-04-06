@@ -1,0 +1,133 @@
+me: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Staticcheck
+        run: staticcheck ./...
+
+      - name: Unit tests (race detector)
+        run: go test -race -count=1 -timeout 120s ./...
+
+  docker-build:
+    name: Docker Build Verify
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    strategy:
+      matrix:
+        service: [bidding, campaign, budget, scoring, consumer]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.service }} image
+        run: docker build -f deployments/Dockerfile.${{ matrix.service }} -t bidflock-${{ matrix.service }}:ci .
+
+  integration:
+    name: Integration Smoke Test
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+
+      - name: Start infrastructure
+        run: docker compose -f deployments/docker-compose.infra.yml up -d
+
+      - name: Wait for infrastructure
+        run: |
+          echo "Waiting for Redis..."
+          for i in $(seq 1 30); do
+            docker compose -f deployments/docker-compose.infra.yml exec -T redis redis-cli ping && break
+            sleep 2
+          done
+
+          echo "Waiting for MongoDB..."
+          for i in $(seq 1 30); do
+            docker compose -f deployments/docker-compose.infra.yml exec -T mongo mongosh --eval "db.runCommand({ping:1})" --quiet && break
+            sleep 2
+          done
+  
+          echo "Waiting for Redpanda..."
+          for i in $(seq 1 30); do
+            docker compose -f deployments/docker-compose.infra.yml exec -T redpanda rpk cluster health && break
+            sleep 2
+          done
+
+          echo "Waiting for ClickHouse..."
+          for i in $(seq 1 30); do
+            docker compose -f deployments/docker-compose.infra.yml exec -T clickhouse clickhouse-client --query "SELECT 1" && break
+            sleep 2
+          done
+
+      - name: Build all services
+        run: make build
+
+      - name: Start services
+        run: |
+          # Start each service in background
+          go run cmd/campaign/main.go &
+          sleep 3
+          go run cmd/budget/main.go &
+          go run cmd/scoring/main.go &
+          sleep 3
+          go run cmd/bidding/main.go &
+          go run cmd/consumer/main.go &
+          sleep 5
+
+      - name: Health check
+        run: |
+          curl -f http://localhost:8081/health || (echo "Bidding service not healthy" && exit 1)
+          curl -f http://localhost:8082/health || (echo "Campaign service not healthy" && exit 1)
+
+      - name: Seed mock data
+        run: go run scripts/seed.go
+
+      - name: Smoke test — send bid requests
+        run: |
+          # Send 10 bid requests, verify we get valid responses
+          for i in $(seq 1 10); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8081/bid \
+              -H "Content-Type: application/json" \
+              -d '{
+                "id": "ci-test-'"$i"'",
+                "imp": [{"id": "imp-1", "banner": {"w": 320, "h": 50}, "bidfloor": 0.10, "bidfloorcur": "USD"}],
+                "app": {"id": "app-1", "bundle": "com.test.app", "cat": ["IAB9"]},
+                "user": {"id": "user-ci-'"$i"'", "yob": 1995, "gender": "M", "geo": {"country": "US"}, "interests": ["gaming"]},
+                "device": {"os": "iOS", "devicetype": 4},
+                "at": 2, "tmax": 150, "cur": ["USD"]
+              }')
+            if [ "$STATUS" -ne 200 ]; then
+              echo "Bid request $i failed with status $STATUS"
+              exit 1
+            fi
+          done
+          echo "All 10 bid requests returned 200 OK"
+
+      - name: Teardown
+        if: always()
+        run: docker compose -f deployments/docker-compose.infra.yml down -v
