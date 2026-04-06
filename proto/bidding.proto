@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package bidding;
+
+option go_package = "github.com/AndrewAct/bidflock/gen/go/bidding";
+
+import "common.proto";
+
+// BidResult is published to Kafka after each auction
+message BidResult {
+  string request_id = 1;
+  string auction_type = 2; // "first_price" | "second_price"
+  repeated BidCandidate candidates = 3;
+  BidCandidate winner = 4;
+  bool no_bid = 5;
+  int32 no_bid_reason = 6;
+  int64 auction_duration_us = 7; // microseconds
+  string ssp_id = 8;
+  int64 timestamp = 9; // unix millis
+}
+
+message BidCandidate {
+  string campaign_id = 1;
+  string ad_id = 2;
+  double raw_bid = 3;
+  double effective_bid = 4; // after pacing multiplier
+  double clearing_price = 5; // second-price winner pays this
+  double predicted_ctr = 6;
+  bool budget_ok = 7;
+}

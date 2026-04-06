@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package budget;
+
+option go_package = "github.com/AndrewAct/bidflock/gen/go/budget";
+
+service BudgetService {
+  // CheckBudget checks if a campaign has budget and isn't frequency-capped
+  rpc CheckBudget(CheckBudgetRequest) returns (CheckBudgetResponse);
+  // DeductBudget atomically deducts spend after a win
+  rpc DeductBudget(DeductBudgetRequest) returns (DeductBudgetResponse);
+  // GetPacingInfo returns current spend pacing for a campaign
+  rpc GetPacingInfo(PacingRequest) returns (PacingResponse);
+}
+
+message CheckBudgetRequest {
+  string campaign_id = 1;
+  string user_id = 2;
+  double bid_amount = 3;
+}
+
+message CheckBudgetResponse {
+  bool allowed = 1;
+  string reason = 2;
+  double remaining_daily_budget = 3;
+  double pacing_multiplier = 4; // 0.0-1.0, multiply bid by this for pacing
+}
+
+message DeductBudgetRequest {
+  string campaign_id = 1;
+  string bid_id = 2;
+  double amount = 3;
+}
+
+message DeductBudgetResponse {
+  bool success = 1;
+  double remaining_daily_budget = 2;
+}
+
+message PacingRequest {
+  string campaign_id = 1;
+}
+
+message PacingResponse {
+  double spend_rate = 1;          // current hourly spend rate
+  double target_rate = 2;         // target hourly spend rate for smooth pacing
+  double pacing_multiplier = 3;   // suggested bid multiplier
+  double daily_spend_so_far = 4;
+  double daily_budget = 5;
+}

@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/AndrewAct/bidflock/gen/go/common";
+
+// OpenRTB 2.6 aligned BidRequest
+message BidRequest {
+  string id = 1;
+  repeated Imp imp = 2;
+  Site site = 3;
+  App app = 4;
+  User user = 5;
+  Device device = 6;
+  int32 at = 7;   // auction type: 1=first-price, 2=second-price
+  int32 tmax = 8; // max latency in ms
+  repeated string wseat = 9;
+  repeated string cur = 10;
+  Ext ext = 11;
+}
+
+message Imp {
+  string id = 1;
+  Banner banner = 2;
+  Video video = 3;
+  Native native = 4;
+  double bidfloor = 5;
+  string bidfloorcur = 6;
+  int32 secure = 7;
+}
+
+message Banner {
+  int32 w = 1;
+  int32 h = 2;
+  repeated int32 btype = 3;
+  repeated int32 battr = 4;
+  int32 pos = 5;
+}
+
+message Video {
+  repeated string mimes = 1;
+  int32 minduration = 2;
+  int32 maxduration = 3;
+  repeated int32 protocols = 4;
+  int32 w = 5;
+  int32 h = 6;
+  int32 startdelay = 7;
+  int32 linearity = 8;
+  repeated int32 api = 9;
+}
+
+message Native {
+  string request = 1;
+  string ver = 2;
+  repeated int32 api = 3;
+}
+
+message Site {
+  string id = 1;
+  string name = 2;
+  string domain = 3;
+  repeated string cat = 4;
+  string page = 5;
+  string ref = 6;
+  Publisher publisher = 7;
+}
+
+message App {
+  string id = 1;
+  string name = 2;
+  string bundle = 3;
+  repeated string cat = 4;
+  string ver = 5;
+  Publisher publisher = 6;
+  string storeurl = 7;
+}
+
+message Publisher {
+  string id = 1;
+  string name = 2;
+  repeated string cat = 3;
+  string domain = 4;
+}
+
+message User {
+  string id = 1;
+  int32 yob = 2;
+  string gender = 3;
+  string geo = 4; // ISO 3166-1 alpha-2 country code
+  repeated string interests = 5;
+  Data data = 6;
+}
+
+message Data {
+  string id = 1;
+  string name = 2;
+  repeated Segment segment = 3;
+}
+
+message Segment {
+  string id = 1;
+  string name = 2;
+  string value = 3;
+}
+
+message Device {
+  string ua = 1;
+  string ip = 2;
+  Geo geo = 3;
+  string make = 4;
+  string model = 5;
+  string os = 6;
+  string osv = 7;
+  int32 devicetype = 8; // 1=mobile/tablet, 2=personal computer, 3=connected TV, 4=phone, 5=tablet
+  int32 js = 9;
+  string language = 10;
+  string carrier = 11;
+  string ifa = 12; // identifier for advertising (IDFA/GAID)
+}
+
+message Geo {
+  double lat = 1;
+  double lon = 2;
+  string country = 3;
+  string region = 4;
+  string city = 5;
+  string zip = 6;
+}
+
+// OpenRTB 2.6 aligned BidResponse
+message BidResponse {
+  string id = 1;
+  repeated SeatBid seatbid = 2;
+  string bidid = 3;
+  string cur = 4;
+  int32 nbr = 5; // no-bid reason code
+}
+
+message SeatBid {
+  repeated Bid bid = 1;
+  string seat = 2;
+}
+
+message Bid {
+  string id = 1;
+  string impid = 2;
+  double price = 3;
+  string adid = 4;
+  string nurl = 5;  // win notification URL
+  string burl = 6;  // billing notification URL
+  string adm = 7;   // ad markup
+  string adomain = 8;
+  string cid = 9;   // campaign ID
+  string crid = 10; // creative ID
+  int32 w = 11;
+  int32 h = 12;
+  double dealid_floor = 13;
+}
+
+message Ext {
+  string ssp_id = 1;
+  string exchange = 2;
+}

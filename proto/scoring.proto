@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package scoring;
+
+option go_package = "github.com/AndrewAct/bidflock/gen/go/scoring";
+
+import "common.proto";
+
+service ScoringService {
+  // ScoreAds returns CTR predictions and effective bid prices for candidate ads
+  rpc ScoreAds(ScoreRequest) returns (ScoreResponse);
+}
+
+message ScoreRequest {
+  string request_id = 1;
+  common.BidRequest bid_request = 2;
+  repeated string campaign_ids = 3;
+}
+
+message ScoreResponse {
+  string request_id = 1;
+  repeated AdScore scores = 2;
+}
+
+message AdScore {
+  string campaign_id = 1;
+  string ad_id = 2;
+  double predicted_ctr = 3;
+  double predicted_cvr = 4;
+  double effective_bid = 5; // base_bid * predicted_ctr
+  double quality_score = 6;
+}

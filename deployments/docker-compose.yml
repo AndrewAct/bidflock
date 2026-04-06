@@ -1,0 +1,101 @@
+version: "3.9"
+
+# Full stack: infra + all services
+include:
+  - docker-compose.infra.yml
+
+services:
+  bidding:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.bidding
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_ADDR: redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      SCORING_ADDR: scoring:8084
+      BUDGET_ADDR: budget:8083
+      LISTEN_ADDR: :8081
+    depends_on:
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  campaign:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.campaign
+    ports:
+      - "8082:8082"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      KAFKA_BROKERS: redpanda:9092
+      LISTEN_ADDR: :8082
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  budget:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.budget
+    ports:
+      - "8083:8083"
+    environment:
+      REDIS_ADDR: redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      GRPC_ADDR: :8083
+    depends_on:
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  scoring:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.scoring
+    ports:
+      - "8084:8084"
+    environment:
+      REDIS_ADDR: redis:6379
+      KAFKA_BROKERS: redpanda:9092
+      GRPC_ADDR: :8084
+    depends_on:
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    restart: unless-stopped
+
+  consumer:
+    build:
+      context: ..
+      dockerfile: deployments/Dockerfile.consumer
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      CLICKHOUSE_ADDR: clickhouse:9000
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+  gateway:
+    image: devopsfaith/krakend:2.7
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../config/krakend.json:/etc/krakend/krakend.json
+    depends_on:
+      - bidding
+      - campaign
+    restart: unless-stopped

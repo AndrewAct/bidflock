@@ -1,0 +1,175 @@
+{
+  "$schema": "https://www.krakend.io/schema/v2.7/krakend.json",
+  "version": 3,
+  "name": "bidflock-gateway",
+  "timeout": "200ms",
+  "cache_ttl": "300s",
+  "output_encoding": "json",
+  "port": 8080,
+  "extra_config": {
+    "telemetry/metrics": {
+      "collection_time": "30s",
+      "proxy_disabled": false,
+      "router_disabled": false,
+      "backend_disabled": false,
+      "endpoint_disabled": false,
+      "listen_address": ":9091"
+    },
+    "security/cors": {
+      "allow_origins": ["*"],
+      "allow_methods": ["POST", "GET", "PUT", "DELETE"],
+      "allow_headers": ["Content-Type", "Authorization"],
+      "expose_headers": ["Content-Type"],
+      "max_age": "12h"
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint": "/v1/bid",
+      "method": "POST",
+      "timeout": "150ms",
+      "output_encoding": "json",
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "max_rate": 100000,
+          "client_max_rate": 1000,
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/bid",
+          "host": ["http://bidding:8081"],
+          "method": "POST",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/advertisers",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/advertisers",
+          "host": ["http://campaign:8082"],
+          "method": "POST",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/advertisers",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/advertisers",
+          "host": ["http://campaign:8082"],
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/advertisers/{id}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/advertisers/{id}",
+          "host": ["http://campaign:8082"],
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/campaigns",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/campaigns",
+          "host": ["http://campaign:8082"],
+          "method": "POST",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/campaigns",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/campaigns",
+          "host": ["http://campaign:8082"],
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/campaigns/{id}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/campaigns/{id}",
+          "host": ["http://campaign:8082"],
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/campaigns/{id}",
+      "method": "PUT",
+      "backend": [
+        {
+          "url_pattern": "/campaigns/{id}",
+          "host": ["http://campaign:8082"],
+          "method": "PUT",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/campaigns/{id}",
+      "method": "DELETE",
+      "backend": [
+        {
+          "url_pattern": "/campaigns/{id}",
+          "host": ["http://campaign:8082"],
+          "method": "DELETE",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/ads",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/ads",
+          "host": ["http://campaign:8082"],
+          "method": "POST",
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/v1/ads/{id}",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/ads/{id}",
+          "host": ["http://campaign:8082"],
+          "encoding": "json"
+        }
+      ]
+    },
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/health",
+          "host": ["http://bidding:8081"],
+          "encoding": "json"
+        }
+      ]
+    }
+  ]
+}
