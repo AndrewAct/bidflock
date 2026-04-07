@@ -27,7 +27,7 @@ This project exists to demonstrate that all of the above is achievable in idioma
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Traffic Simulator                         │
+│                        Traffic Simulator                        │
 │   (OpenRTB bid requests, realistic user profiles, 100K+ QPS)    │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ HTTP POST /v1/bid
@@ -48,8 +48,8 @@ This project exists to demonstrate that all of the above is achievable in idioma
           gRPC   │              │  gRPC
        ScoreAds  │              │  CheckBudget / DeductBudget
                  ▼              ▼
-      ┌──────────────┐  ┌──────────────┐
-      │   Scoring    │  │    Budget    │
+      ┌──────────────┐  ┌─────────────┐
+      │   Scoring    │  │    Budget   │
       │  Service     │  │   Service   │
       │  :8084 gRPC  │  │  :8083 gRPC │
       │              │  │             │
@@ -394,10 +394,10 @@ High-level production deployment approach:
 ┌─────────────────────────────────────────────────────────┐
 │  GKE Cluster                                            │
 │                                                         │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐              │
-│  │ bidding  │  │ campaign │  │  budget  │  (HPA: CPU)  │
-│  │ x10 pods │  │ x2 pods  │  │ x4 pods  │              │
-│  └──────────┘  └──────────┘  └──────────┘              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+│  │ bidding  │  │ campaign │  │  budget  │  (HPA: CPU)   │
+│  │ x10 pods │  │ x2 pods  │  │ x4 pods  │               │
+│  └──────────┘  └──────────┘  └──────────┘               │
 │                                                         │
 │  ┌──────────┐  ┌──────────┐                             │
 │  │ scoring  │  │ consumer │                             │
